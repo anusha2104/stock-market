@@ -42,22 +42,35 @@ const Analyzer = () => {
   const fetchAllData = async (stockSymbol) => {
     setLoading(true);
     try {
-      const [stockRes, chartRes, predictionRes, indicatorsRes] = await Promise.all([
-        axios.get(`${API}/stocks/${stockSymbol}`),
-        axios.get(`${API}/stocks/${stockSymbol}/chart`),
-        axios.get(`${API}/stocks/${stockSymbol}/predict`),
-        axios.get(`${API}/stocks/${stockSymbol}/indicators`)
-      ]);
-
+      // Fetch stock data first
+      const stockRes = await axios.get(`${API}/stocks/${stockSymbol}`);
       setStockData(stockRes.data);
+      
+      // Wait a bit to avoid rate limiting
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Fetch chart data
+      const chartRes = await axios.get(`${API}/stocks/${stockSymbol}/chart`);
       setChartData(chartRes.data);
+      
+      // Wait a bit more
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Fetch prediction
+      const predictionRes = await axios.get(`${API}/stocks/${stockSymbol}/predict`);
       setPrediction(predictionRes.data);
+      
+      // Wait a bit more
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Fetch indicators
+      const indicatorsRes = await axios.get(`${API}/stocks/${stockSymbol}/indicators`);
       setIndicators(indicatorsRes.data);
       
       toast.success(`Successfully loaded data for ${stockSymbol}`);
     } catch (error) {
       console.error('Error fetching data:', error);
-      toast.error(error.response?.data?.detail || 'Failed to fetch stock data');
+      toast.error(error.response?.data?.detail || 'Failed to fetch stock data. Try again in a moment.');
     } finally {
       setLoading(false);
     }
