@@ -106,6 +106,13 @@ async def fetch_time_series(symbol: str) -> List[dict]:
         response = await client.get(url)
         data = response.json()
         
+        # Check for API rate limit or error messages
+        if "Note" in data:
+            raise HTTPException(status_code=429, detail="API rate limit reached. Please wait a moment and try again.")
+        
+        if "Error Message" in data:
+            raise HTTPException(status_code=404, detail=f"Stock symbol '{symbol}' not found")
+        
         if "Time Series (Daily)" not in data:
             return []
         
