@@ -1,14 +1,17 @@
-from fastapi import FastAPI, APIRouter
+from fastapi import FastAPI, APIRouter, HTTPException
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 import os
 import logging
 from pathlib import Path
-from pydantic import BaseModel, Field, ConfigDict
-from typing import List
+from pydantic import BaseModel, Field, ConfigDict, EmailStr
+from typing import List, Optional
 import uuid
 from datetime import datetime, timezone
+import httpx
+import numpy as np
+from sklearn.linear_model import LinearRegression
 
 
 ROOT_DIR = Path(__file__).parent
@@ -19,6 +22,9 @@ mongo_url = os.environ['MONGO_URL']
 client = AsyncIOMotorClient(mongo_url)
 db = client[os.environ['DB_NAME']]
 
+# Alpha Vantage API key
+ALPHA_VANTAGE_KEY = os.environ.get('ALPHA_VANTAGE_KEY', '')
+
 # Create the main app without a prefix
 app = FastAPI()
 
@@ -27,44 +33,262 @@ api_router = APIRouter(prefix="/api")
 
 
 # Define Models
-class StatusCheck(BaseModel):
-    model_config = ConfigDict(extra="ignore")  # Ignore MongoDB's _id field
+class ContactMessage(BaseModel):
+    model_config = ConfigDict(extra="ignore")
     
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    client_name: str
+    name: str
+    email: EmailStr
+    message: str
     timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
-class StatusCheckCreate(BaseModel):
-    client_name: str
+class ContactMessageCreate(BaseModel):
+    name: str
+    email: EmailStr
+    message: str
 
-# Add your routes to the router instead of directly to app
+class StockData(BaseModel):
+    symbol: str
+    price: float
+    change: float
+    change_percent: float
+    volume: int
+    timestamp: str
+
+class StockPrediction(BaseModel):
+    symbol: str
+    current_price: float
+    predicted_price: float
+    confidence: str
+    trend: str
+
+class TechnicalIndicators(BaseModel):
+    symbol: str
+    sma_20: Optional[float] = None
+    sma_50: Optional[float] = None
+    ema_12: Optional[float] = None
+    ema_26: Optional[float] = None
+    rsi: Optional[float] = None
+
+
+# Alpha Vantage Service
+async def fetch_stock_data(symbol: str) -> dict:
+    """Fetch real-time stock data from Alpha Vantage"""
+    async with httpx.AsyncClient(timeout=10.0) as client:
+        url = f"https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol={symbol}&apikey={ALPHA_VANTAGE_KEY}"
+        response = await client.get(url)
+        data = response.json()
+        
+        if "Global Quote" not in data or not data["Global Quote"]:
+            raise HTTPException(status_code=404, detail=f"Stock symbol '{symbol}' not found")
+        
+        quote = data["Global Quote"]
+        return {
+            "symbol": quote.get("01. symbol", symbol),
+            "price": float(quote.get("05. price", 0)),
+            "change": float(quote.get("09. change", 0)),
+            "change_percent": float(quote.get("10. change percent", "0").replace("%", "")),
+            "volume": int(quote.get("06. volume", 0)),
+            "timestamp": quote.get("07. latest trading day", "")
+        }
+
+async def fetch_time_series(symbol: str) -> List[dict]:
+    """Fetch historical time series data"""
+    async with httpx.AsyncClient(timeout=10.0) as client:
+        url = f"https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol={symbol}&outputsize=compact&apikey={ALPHA_VANTAGE_KEY}"
+        response = await client.get(url)
+        data = response.json()
+        
+        if "Time Series (Daily)" not in data:
+            return []
+        
+        time_series = data["Time Series (Daily)"]
+        result = []
+        
+        for date, values in list(time_series.items())[:60]:  # Last 60 days
+            result.append({
+                "date": date,
+                "close": float(values["4. close"]),
+                "volume": int(values["5. volume"])
+            })
+        
+        return sorted(result, key=lambda x: x["date"])
+
+def calculate_sma(prices: List[float], period: int) -> float:
+    """Calculate Simple Moving Average"""
+    if len(prices) < period:
+        return None
+    return sum(prices[-period:]) / period
+
+def calculate_ema(prices: List[float], period: int) -> float:
+    """Calculate Exponential Moving Average"""
+    if len(prices) < period:
+        return None
+    
+    multiplier = 2 / (period + 1)
+    ema = sum(prices[:period]) / period
+    
+    for price in prices[period:]:
+        ema = (price - ema) * multiplier + ema
+    
+    return ema
+
+def calculate_rsi(prices: List[float], period: int = 14) -> float:
+    """Calculate Relative Strength Index"""
+    if len(prices) < period + 1:
+        return None
+    
+    gains = []
+    losses = []
+    
+    for i in range(1, len(prices)):
+        change = prices[i] - prices[i-1]
+        if change > 0:
+            gains.append(change)
+            losses.append(0)
+        else:
+            gains.append(0)
+            losses.append(abs(change))
+    
+    avg_gain = sum(gains[-period:]) / period
+    avg_loss = sum(losses[-period:]) / period
+    
+    if avg_loss == 0:
+        return 100
+    
+    rs = avg_gain / avg_loss
+    rsi = 100 - (100 / (1 + rs))
+    
+    return rsi
+
+def predict_next_price(prices: List[float]) -> dict:
+    """Predict next day price using linear regression"""
+    if len(prices) < 10:
+        return {"predicted_price": prices[-1], "confidence": "low", "trend": "neutral"}
+    
+    # Prepare data
+    X = np.array(range(len(prices))).reshape(-1, 1)
+    y = np.array(prices)
+    
+    # Train model
+    model = LinearRegression()
+    model.fit(X, y)
+    
+    # Predict next day
+    next_day = np.array([[len(prices)]])
+    predicted_price = model.predict(next_day)[0]
+    
+    # Calculate trend
+    recent_trend = (prices[-1] - prices[-5]) / prices[-5] * 100 if len(prices) >= 5 else 0
+    
+    if recent_trend > 1:
+        trend = "bullish"
+        confidence = "medium"
+    elif recent_trend < -1:
+        trend = "bearish"
+        confidence = "medium"
+    else:
+        trend = "neutral"
+        confidence = "low"
+    
+    return {
+        "predicted_price": float(predicted_price),
+        "confidence": confidence,
+        "trend": trend
+    }
+
+
+# API Routes
 @api_router.get("/")
 async def root():
-    return {"message": "Hello World"}
+    return {"message": "Stock Market Analyzer API"}
 
-@api_router.post("/status", response_model=StatusCheck)
-async def create_status_check(input: StatusCheckCreate):
-    status_dict = input.model_dump()
-    status_obj = StatusCheck(**status_dict)
+@api_router.get("/stocks/{symbol}", response_model=StockData)
+async def get_stock_data(symbol: str):
+    """Get real-time stock data"""
+    try:
+        data = await fetch_stock_data(symbol.upper())
+        return StockData(**data)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@api_router.get("/stocks/{symbol}/chart")
+async def get_stock_chart(symbol: str):
+    """Get historical stock data for chart"""
+    try:
+        data = await fetch_time_series(symbol.upper())
+        return {"symbol": symbol.upper(), "data": data}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@api_router.get("/stocks/{symbol}/predict", response_model=StockPrediction)
+async def predict_stock_price(symbol: str):
+    """Predict next day stock price using ML"""
+    try:
+        # Fetch historical data
+        time_series = await fetch_time_series(symbol.upper())
+        
+        if not time_series:
+            raise HTTPException(status_code=404, detail="Insufficient data for prediction")
+        
+        prices = [item["close"] for item in time_series]
+        current_price = prices[-1]
+        
+        # Make prediction
+        prediction = predict_next_price(prices)
+        
+        return StockPrediction(
+            symbol=symbol.upper(),
+            current_price=current_price,
+            predicted_price=prediction["predicted_price"],
+            confidence=prediction["confidence"],
+            trend=prediction["trend"]
+        )
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@api_router.get("/stocks/{symbol}/indicators", response_model=TechnicalIndicators)
+async def get_technical_indicators(symbol: str):
+    """Get technical indicators (SMA, EMA, RSI)"""
+    try:
+        # Fetch historical data
+        time_series = await fetch_time_series(symbol.upper())
+        
+        if not time_series:
+            raise HTTPException(status_code=404, detail="Insufficient data for indicators")
+        
+        prices = [item["close"] for item in time_series]
+        
+        # Calculate indicators
+        sma_20 = calculate_sma(prices, 20)
+        sma_50 = calculate_sma(prices, 50)
+        ema_12 = calculate_ema(prices, 12)
+        ema_26 = calculate_ema(prices, 26)
+        rsi = calculate_rsi(prices, 14)
+        
+        return TechnicalIndicators(
+            symbol=symbol.upper(),
+            sma_20=sma_20,
+            sma_50=sma_50,
+            ema_12=ema_12,
+            ema_26=ema_26,
+            rsi=rsi
+        )
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@api_router.post("/contact", response_model=ContactMessage)
+async def create_contact_message(input: ContactMessageCreate):
+    """Handle contact form submission"""
+    contact_obj = ContactMessage(**input.model_dump())
     
     # Convert to dict and serialize datetime to ISO string for MongoDB
-    doc = status_obj.model_dump()
+    doc = contact_obj.model_dump()
     doc['timestamp'] = doc['timestamp'].isoformat()
     
-    _ = await db.status_checks.insert_one(doc)
-    return status_obj
+    await db.contact_messages.insert_one(doc)
+    return contact_obj
 
-@api_router.get("/status", response_model=List[StatusCheck])
-async def get_status_checks():
-    # Exclude MongoDB's _id field from the query results
-    status_checks = await db.status_checks.find({}, {"_id": 0}).to_list(1000)
-    
-    # Convert ISO string timestamps back to datetime objects
-    for check in status_checks:
-        if isinstance(check['timestamp'], str):
-            check['timestamp'] = datetime.fromisoformat(check['timestamp'])
-    
-    return status_checks
 
 # Include the router in the main app
 app.include_router(api_router)
