@@ -1,0 +1,138 @@
+{
+  "identity": {
+    "name": "Stock Market Analyzer",
+    "persona": "The Quantitative Analyst",
+    "vibe": "Precision, High-Frequency Trading, Institutional Grade",
+    "archetype": "Swiss & High-Contrast (Modified for Fintech)"
+  },
+  "typography": {
+    "primary_font": "Manrope",
+    "secondary_font": "Chivo",
+    "mono_font": "JetBrains Mono",
+    "google_fonts_import": "https://fonts.googleapis.com/css2?family=Chivo:wght@300;400;700;900&family=JetBrains+Mono:wght@400;500&family=Manrope:wght@400;500;600;700&display=swap",
+    "usage": {
+      "headings": "font-family: 'Chivo', sans-serif; font-weight: 700; tracking-tight;",
+      "body": "font-family: 'Manrope', sans-serif;",
+      "data_display": "font-family: 'JetBrains Mono', monospace; letter-spacing: -0.02em;"
+    }
+  },
+  "colors": {
+    "palette": {
+      "light": {
+        "background": "#F8FAFC",
+        "foreground": "#0F172A",
+        "primary": "#2563EB",
+        "secondary": "#E2E8F0",
+        "accent": "#10B981",
+        "destructive": "#EF4444",
+        "card": "#FFFFFF",
+        "border": "#E2E8F0"
+      },
+      "dark": {
+        "background": "#020617",
+        "foreground": "#F8FAFC",
+        "primary": "#3B82F6",
+        "secondary": "#1E293B",
+        "accent": "#34D399",
+        "destructive": "#F87171",
+        "card": "#0F172A",
+        "border": "#1E293B"
+      }
+    },
+    "semantic": {
+      "trend_up": "text-emerald-500 dark:text-emerald-400",
+      "trend_down": "text-rose-500 dark:text-rose-400",
+      "neutral": "text-slate-500 dark:text-slate-400"
+    }
+  },
+  "layout": {
+    "container": "max-w-7xl mx-auto px-4 sm:px-6 lg:px-8",
+    "spacing": {
+      "section_padding": "py-16 lg:py-24",
+      "component_gap": "gap-6 lg:gap-8"
+    },
+    "grid_system": {
+      "dashboard": "grid grid-cols-1 md:grid-cols-12 gap-6",
+      "dashboard_hero": "col-span-12 lg:col-span-8",
+      "dashboard_sidebar": "col-span-12 lg:col-span-4"
+    }
+  },
+  "components": {
+    "buttons": {
+      "primary": "bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-6 py-2 rounded-full font-medium transition-all shadow-lg shadow-primary/20",
+      "secondary": "bg-secondary text-secondary-foreground hover:bg-secondary/80 h-10 px-6 py-2 rounded-full font-medium",
+      "outline": "border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-6 py-2 rounded-full"
+    },
+    "cards": {
+      "base": "rounded-xl border bg-card text-card-foreground shadow-sm",
+      "glass": "backdrop-blur-xl bg-white/70 dark:bg-slate-950/70 border-white/20 dark:border-white/10 shadow-xl"
+    },
+    "inputs": {
+      "base": "flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+    }
+  },
+  "visual_enhancers": {
+    "glassmorphism": "backdrop-blur-md bg-background/80 border border-border/50",
+    "gradients": {
+      "hero_text": "bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-cyan-500 dark:from-blue-400 dark:to-cyan-300",
+      "subtle_glow": "shadow-[0_0_40px_-10px_rgba(37,99,235,0.3)]"
+    },
+    "animations": {
+      "hover_lift": "transition-transform duration-300 hover:-translate-y-1",
+      "fade_in": "animate-in fade-in duration-500"
+    }
+  },
+  "image_urls": {
+    "hero_bg": "https://images.unsplash.com/photo-1762279389002-7b6abd7bd6c6?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDQ2MzR8MHwxfHNlYXJjaHwxfHxzdG9jayUyMG1hcmtldCUyMGRhdGElMjB2aXN1YWxpemF0aW9uJTIwYWJzdHJhY3R8ZW58MHx8fHwxNzcxMDg5NDYzfDA&ixlib=rb-4.1.0&q=85",
+    "about_team": "https://images.unsplash.com/photo-1758518727707-b023e285b709?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1NzB8MHwxfHNlYXJjaHwxfHxtb2Rlcm4lMjBmaW5hbmNlJTIwdGVhbSUyMG1lZXRpbmd8ZW58MHx8fHwxNzcxMDg5NDY5fDA&ixlib=rb-4.1.0&q=85",
+    "feature_chart": "https://images.unsplash.com/photo-1551288049-bebda4e38f71?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDQ2MzR8MHwxfHNlYXJjaHw0fHxzdG9jayUyMG1hcmtldCUyMGRhdGElMjB2aXN1YWxpemF0aW9uJTIwYWJzdHJhY3R8ZW58MHx8fHwxNzcxMDg5NDYzfDA&ixlib=rb-4.1.0&q=85"
+  },
+  "instructions_to_main_agent": {
+    "general": "You are building a professional Stock Market Analyzer. The design must be clean, data-heavy but readable, and responsive. Use the provided image URLs for the respective sections.",
+    "charting": "Use Chart.js (via react-chartjs-2) for all stock data visualizations. Ensure charts are responsive and handle dark/light mode theme changes (update grid lines and text colors dynamically).",
+    "theme_toggle": "Implement a robust ThemeProvider. The toggle should be prominent in the navbar.",
+    "api_integration": "Mock the Alpha Vantage API response if the API key is missing or rate limited, but structure the code to easily swap in the real API call. Use 'axios' for fetching.",
+    "ai_prediction": "For the 'AI Prediction', since we are in a frontend-first environment, you can either mock the prediction endpoint or implement a simple linear regression calculation in JavaScript (using a library like 'simple-statistics' or custom logic) to demonstrate the feature if the backend isn't fully ready.",
+    "pages": [
+      {
+        "name": "Home",
+        "path": "/",
+        "features": ["Hero with 'Get Started'", "Feature Grid (3 cols)", "Testimonials/Trust"]
+      },
+      {
+        "name": "Analyzer",
+        "path": "/analyzer",
+        "features": ["Stock Search Input", "Real-time Price Display", "Interactive Chart (Candlestick/Line)", "Prediction Card", "Technical Indicators Panel"]
+      },
+      {
+        "name": "Features",
+        "path": "/features",
+        "features": ["Detailed breakdown of AI, Real-time data, and Indicators"]
+      },
+      {
+        "name": "About",
+        "path": "/about",
+        "features": ["Project mission", "Team photo", "Tech stack icons"]
+      },
+      {
+        "name": "Contact",
+        "path": "/contact",
+        "features": ["Simple form (Name, Email, Message)"]
+      }
+    ]
+  },
+  "universal_guidelines": {
+    "do_not": [
+      "Do not use generic 'Inter' font for headings.",
+      "Do not use gradients for text unless specified.",
+      "Do not center-align long paragraphs.",
+      "Do not use 'alert' for errors; use 'sonner' toasts."
+    ],
+    "must_do": [
+      "Use 'data-testid' on all interactive elements.",
+      "Ensure all text has sufficient contrast (WCAG AA).",
+      "Use 'lucide-react' for icons.",
+      "Implement a proper loading state for data fetching."
+    ]
+  }
+}
