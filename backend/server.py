@@ -79,6 +79,13 @@ async def fetch_stock_data(symbol: str) -> dict:
         response = await client.get(url)
         data = response.json()
         
+        # Check for API rate limit or error messages
+        if "Note" in data:
+            raise HTTPException(status_code=429, detail="API rate limit reached. Please wait a moment and try again.")
+        
+        if "Error Message" in data:
+            raise HTTPException(status_code=404, detail=f"Stock symbol '{symbol}' not found")
+        
         if "Global Quote" not in data or not data["Global Quote"]:
             raise HTTPException(status_code=404, detail=f"Stock symbol '{symbol}' not found")
         
