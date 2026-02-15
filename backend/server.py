@@ -46,9 +46,19 @@ class TechnicalIndicators(BaseModel):
 
 async def fetch_stock_data(symbol: str) -> dict:
     url = f"https://query1.finance.yahoo.com/v7/finance/quote?symbols={symbol}"
-    async with httpx.AsyncClient(timeout=10.0) as client:
+
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120 Safari/537.36",
+        "Accept": "application/json",
+    }
+
+    async with httpx.AsyncClient(timeout=10.0, headers=headers) as client:
         r = await client.get(url)
-        data = r.json()
+
+    if r.status_code == 429:
+        raise HTTPException(status_code=429, detail="Yahoo Finance rate limit reached. Try again in a minute.")
+
+    data = r.json()
 
     try:
         result = data["quoteResponse"]["result"][0]
@@ -57,18 +67,28 @@ async def fetch_stock_data(symbol: str) -> dict:
 
     return {
         "symbol": symbol.upper(),
-        "price": float(result.get("regularMarketPrice", 0)),
-        "change": float(result.get("regularMarketChange", 0)),
-        "change_percent": float(result.get("regularMarketChangePercent", 0)),
+        "price": float(result.get("regularMarketPrice", 0) or 0),
+        "change": float(result.get("regularMarketChange", 0) or 0),
+        "change_percent": float(result.get("regularMarketChangePercent", 0) or 0),
         "volume": int(result.get("regularMarketVolume", 0) or 0),
         "timestamp": datetime.now(timezone.utc).isoformat()
     }
 
 async def fetch_time_series(symbol: str) -> List[dict]:
     url = f"https://query1.finance.yahoo.com/v8/finance/chart/{symbol}?range=3mo&interval=1d"
-    async with httpx.AsyncClient(timeout=10.0) as client:
+
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120 Safari/537.36",
+        "Accept": "application/json",
+    }
+
+    async with httpx.AsyncClient(timeout=10.0, headers=headers) as client:
         r = await client.get(url)
-        data = r.json()
+
+    if r.status_code == 429:
+        raise HTTPException(status_code=429, detail="Yahoo Finance rate limit reached. Try again in a minute.")
+
+    data = r.json()
 
     try:
         timestamps = data["chart"]["result"][0]["timestamp"]
@@ -89,6 +109,7 @@ async def fetch_time_series(symbol: str) -> List[dict]:
         })
 
     return result
+
 
 # ------------------ Indicators & Prediction ------------------
 
