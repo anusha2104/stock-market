@@ -1,94 +1,104 @@
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+import requests
 import pandas as pd
+from io import StringIO
 
-app = FastAPI(title="Stock Market Analyzer API")
+app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 @app.get("/")
 def root():
     return {"message": "Stock Market Analyzer API is running"}
 
-def fetch_stooq_csv(symbol: str) -> pd.DataFrame:
-    symbol = symbol.lower()
-    if "." not in symbol:
-        symbol = symbol + ".us"  # Auto-fix: AAPL -> aapl.us
+# Helper: fetch data from Stooq
+def fetch_stooq(symbol: str) -> pd.DataFrame:
+    sym = symbol.lower()
+    if not sym.endswith(".us"):
+        sym = sym + ".us"
 
-    url = f"https://stooq.pl/q/d/l/?s={symbol}&i=d"
+    url = f"https://stooq.pl/q/d/l/?s={sym}&i=d"
+    r = requests.get(url, timeout=10)
 
-    try:
-        df = pd.read_csv(url)
-    except Exception:
-        raise HTTPException(status_code=500, detail="Failed to fetch data from Stooq")
-
-    if df.empty or "Date" not in df.columns:
+    if r.status_code != 200 or len(r.text) < 50:
         raise HTTPException(status_code=404, detail="Stock symbol not found")
 
-    return df, symbol
+    df = pd.read_csv(StringIO(r.text))
+
+    if df.empty or "Close" not in df.columns:
+        raise HTTPException(status_code=404, detail="Stock symbol not found")
+
+    return df
 
 @app.get("/api/stocks/{symbol}")
 def get_stock(symbol: str):
-    df, fixed_symbol = fetch_stooq_csv(symbol)
+    df = fetch_stooq(symbol)
 
     latest = df.iloc[-1]
+    prev = df.iloc[-2] if len(df) > 1 else latest
 
     return {
-        "symbol": fixed_symbol,
+        "symbol": symbol.upper(),
         "date": str(latest["Date"]),
+        "close": float(latest["Close"]),
         "open": float(latest["Open"]),
         "high": float(latest["High"]),
         "low": float(latest["Low"]),
-        "close": float(latest["Close"]),
-        "volume": int(latest["Volume"]),
+        "prev_close": float(prev["Close"]),
     }
 
 @app.get("/api/stocks/{symbol}/chart")
-def get_stock_chart(symbol: str):
-    df, fixed_symbol = fetch_stooq_csv(symbol)
+def get_chart(symbol: str):
+    df = fetch_stooq(symbol)
 
-    # Return last 100 days for chart
-    df_tail = df.tail(100)
+    df = df.tail(100)
 
     data = []
-    for _, row in df_tail.iterrows():
+    for _, row in df.iterrows():
         data.append({
             "date": str(row["Date"]),
-            "open": float(row["Open"]),
-            "high": float(row["High"]),
-            "low": float(row["Low"]),
-            "close": float(row["Close"]),
-            "volume": int(row["Volume"]),
+            "close": float(row["Close"])
         })
 
     return {
-        "symbol": fixed_symbol,
-        "points": data
+        "symbol": symbol.upper(),
+        "data": data
+    }
+
+@app.get("/api/stocks/{symbol}/predict")
+def predict(symbol: str):
+    df = fetch_stooq(symbol)
+
+    last_close = float(df.iloc[-1]["Close"])
+
+    # Dummy prediction: +1% (for demo/viva)
+    predicted = last_close * 1.01
+
+    return {
+        "symbol": symbol.upper(),
+        "last_close": last_close,
+        "predicted_price": round(predicted, 2),
+        "note": "This is a demo prediction based on simple heuristic"
     }
 
 @app.get("/api/stocks/{symbol}/indicators")
-def get_indicators(symbol: str):
-    df, fixed_symbol = fetch_stooq_csv(symbol)
+def indicators(symbol: str):
+    df = fetch_stooq(symbol)
 
-    # Simple indicators
+    df["SMA_5"] = df["Close"].rolling(window=5).mean()
     df["SMA_10"] = df["Close"].rolling(window=10).mean()
-    df["SMA_20"] = df["Close"].rolling(window=20).mean()
 
     latest = df.iloc[-1]
 
     return {
-        "symbol": fixed_symbol,
-        "sma_10": None if pd.isna(latest["SMA_10"]) else float(latest["SMA_10"]),
-        "sma_20": None if pd.isna(latest["SMA_20"]) else float(latest["SMA_20"]),
-        "close": float(latest["Close"])
-    }
-
-@app.get("/api/stocks/{symbol}/predict")
-def predict_stock(symbol: str):
-    df, fixed_symbol = fetch_stooq_csv(symbol)
-
-    # Super simple "prediction": use last close as next prediction (demo-safe)
-    latest_close = float(df.iloc[-1]["Close"])
-
-    return {
-        "symbol": fixed_symbol,
-        "predicted_price": latest_close,
-        "note": "This is a demo prediction using last closing price"
+        "symbol": symbol.upper(),
+        "sma_5": None if pd.isna(latest["SMA_5"]) else round(float(latest["SMA_5"]), 2),
+        "sma_10": None if pd.isna(latest["SMA_10"]) else round(float(latest["SMA_10"]), 2),
     }
