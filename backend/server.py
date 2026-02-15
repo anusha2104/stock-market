@@ -86,11 +86,18 @@ async def fetch_stock_data(symbol: str) -> dict:
 
     logger.info(f"AlphaVantage GLOBAL_QUOTE response for {symbol}: {data}")
 
+    # 🚨 Handle rate limit clearly
     if "Note" in data:
-        raise HTTPException(status_code=429, detail="Alpha Vantage rate limit reached")
+        raise HTTPException(
+            status_code=429,
+            detail="Alpha Vantage rate limit reached. Please wait 1 minute and try again."
+        )
 
     if "Global Quote" not in data or not data["Global Quote"]:
-        raise HTTPException(status_code=404, detail=f"Stock symbol '{symbol}' not found")
+        raise HTTPException(
+            status_code=500,
+            detail="Alpha Vantage did not return quote data"
+        )
 
     quote = data["Global Quote"]
 
@@ -119,11 +126,17 @@ async def fetch_time_series(symbol: str) -> List[dict]:
     logger.info(f"AlphaVantage TIME_SERIES response for {symbol}: keys={list(data.keys())}")
 
     if "Note" in data:
-        raise HTTPException(status_code=429, detail="Alpha Vantage rate limit reached")
-
+        raise HTTPException(
+            status_code=429,
+            detail="Alpha Vantage rate limit reached. Please wait 1 minute and try again."
+        )
+    
     if "Time Series (Daily)" not in data:
-        raise HTTPException(status_code=404, detail="Failed to fetch historical data")
-
+        raise HTTPException(
+            status_code=500,
+            detail="Alpha Vantage did not return time series data"
+        )
+    
     ts = data["Time Series (Daily)"]
 
     result = []
