@@ -1,25 +1,33 @@
 from fastapi import FastAPI, APIRouter, HTTPException
-from starlette.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
+from starlette.middleware.cors import CORSMiddleware
 import os
 import logging
 from pathlib import Path
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, EmailStr
 from typing import List, Optional
-from datetime import datetime
+import uuid
+from datetime import datetime, timezone
 import httpx
 import numpy as np
 from sklearn.linear_model import LinearRegression
 
+# Load env
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / ".env")
 
+# Alpha Vantage API key
 ALPHA_VANTAGE_KEY = os.environ.get("ALPHA_VANTAGE_KEY", "")
 
+# Setup app
 app = FastAPI()
 api_router = APIRouter(prefix="/api")
 
-# ---------- Models ----------
+# Logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+# -------------------- Models --------------------
 
 class StockData(BaseModel):
     symbol: str
@@ -44,13 +52,13 @@ class TechnicalIndicators(BaseModel):
     ema_26: Optional[float] = None
     rsi: Optional[float] = None
 
-# ---------- Helpers ----------
+# -------------------- Helpers --------------------
 
 def safe_float(value, default=0.0):
     try:
         if value is None:
             return default
-        return float(str(value).replace("%", ""))
+        return float(str(value).replace("%", "").strip())
     except:
         return default
 
@@ -58,66 +66,77 @@ def safe_int(value, default=0):
     try:
         if value is None:
             return default
-        return int(value)
+        return int(float(value))
     except:
         return default
 
-# ---------- Alpha Vantage ----------
+# -------------------- Alpha Vantage --------------------
 
 async def fetch_stock_data(symbol: str) -> dict:
+    url = "https://www.alphavantage.co/query"
+    params = {
+        "function": "GLOBAL_QUOTE",
+        "symbol": symbol,
+        "apikey": ALPHA_VANTAGE_KEY,
+    }
+
     async with httpx.AsyncClient(timeout=15.0) as client:
-        url = (
-            "https://www.alphavantage.co/query"
-            f"?function=GLOBAL_QUOTE&symbol={symbol}&apikey={ALPHA_VANTAGE_KEY}"
-        )
-        r = await client.get(url)
+        r = await client.get(url, params=params)
         data = r.json()
 
-        # Rate limit case
-        if "Note" in data:
-            raise HTTPException(status_code=429, detail="Alpha Vantage rate limit reached. Try again in a minute.")
+    logger.info(f"AlphaVantage GLOBAL_QUOTE response for {symbol}: {data}")
 
-        quote = data.get("Global Quote", {})
+    if "Note" in data:
+        raise HTTPException(status_code=429, detail="Alpha Vantage rate limit reached")
 
-        if not quote or "05. price" not in quote:
-            raise HTTPException(status_code=502, detail="Failed to fetch stock data from Alpha Vantage")
+    if "Global Quote" not in data or not data["Global Quote"]:
+        raise HTTPException(status_code=404, detail=f"Stock symbol '{symbol}' not found")
 
-        return {
-            "symbol": quote.get("01. symbol", symbol),
-            "price": safe_float(quote.get("05. price")),
-            "change": safe_float(quote.get("09. change")),
-            "change_percent": safe_float(quote.get("10. change percent")),
-            "volume": safe_int(quote.get("06. volume")),
-            "timestamp": quote.get("07. latest trading day", ""),
-        }
+    quote = data["Global Quote"]
+
+    return {
+        "symbol": quote.get("01. symbol", symbol),
+        "price": safe_float(quote.get("05. price")),
+        "change": safe_float(quote.get("09. change")),
+        "change_percent": safe_float(quote.get("10. change percent")),
+        "volume": safe_int(quote.get("06. volume")),
+        "timestamp": quote.get("07. latest trading day", ""),
+    }
 
 async def fetch_time_series(symbol: str) -> List[dict]:
+    url = "https://www.alphavantage.co/query"
+    params = {
+        "function": "TIME_SERIES_DAILY",
+        "symbol": symbol,
+        "outputsize": "compact",
+        "apikey": ALPHA_VANTAGE_KEY,
+    }
+
     async with httpx.AsyncClient(timeout=15.0) as client:
-        url = (
-            "https://www.alphavantage.co/query"
-            f"?function=TIME_SERIES_DAILY&symbol={symbol}&outputsize=compact&apikey={ALPHA_VANTAGE_KEY}"
-        )
-        r = await client.get(url)
+        r = await client.get(url, params=params)
         data = r.json()
 
-        if "Note" in data:
-            raise HTTPException(status_code=429, detail="Alpha Vantage rate limit reached. Try again later.")
+    logger.info(f"AlphaVantage TIME_SERIES response for {symbol}: keys={list(data.keys())}")
 
-        series = data.get("Time Series (Daily)")
-        if not series:
-            raise HTTPException(status_code=502, detail="Failed to fetch historical data")
+    if "Note" in data:
+        raise HTTPException(status_code=429, detail="Alpha Vantage rate limit reached")
 
-        result = []
-        for date, values in list(series.items())[:60]:
-            result.append({
-                "date": date,
-                "close": safe_float(values.get("4. close")),
-                "volume": safe_int(values.get("5. volume")),
-            })
+    if "Time Series (Daily)" not in data:
+        raise HTTPException(status_code=404, detail="Failed to fetch historical data")
 
-        return sorted(result, key=lambda x: x["date"])
+    ts = data["Time Series (Daily)"]
 
-# ---------- Indicators & Prediction ----------
+    result = []
+    for date, values in list(ts.items())[:60]:
+        result.append({
+            "date": date,
+            "close": safe_float(values.get("4. close")),
+            "volume": safe_int(values.get("5. volume")),
+        })
+
+    return sorted(result, key=lambda x: x["date"])
+
+# -------------------- Indicators & Prediction --------------------
 
 def calculate_sma(prices: List[float], period: int):
     if len(prices) < period:
@@ -136,42 +155,58 @@ def calculate_ema(prices: List[float], period: int):
 def calculate_rsi(prices: List[float], period: int = 14):
     if len(prices) < period + 1:
         return None
+
     gains, losses = [], []
     for i in range(1, len(prices)):
         diff = prices[i] - prices[i - 1]
-        gains.append(max(diff, 0))
-        losses.append(abs(min(diff, 0)))
+        if diff > 0:
+            gains.append(diff)
+            losses.append(0)
+        else:
+            gains.append(0)
+            losses.append(abs(diff))
+
     avg_gain = sum(gains[-period:]) / period
     avg_loss = sum(losses[-period:]) / period
+
     if avg_loss == 0:
         return 100
+
     rs = avg_gain / avg_loss
     return 100 - (100 / (1 + rs))
 
-def predict_next_price(prices: List[float]):
+def predict_next_price(prices: List[float]) -> dict:
     if len(prices) < 10:
         return {"predicted_price": prices[-1], "confidence": "low", "trend": "neutral"}
 
-    X = np.arange(len(prices)).reshape(-1, 1)
+    X = np.array(range(len(prices))).reshape(-1, 1)
     y = np.array(prices)
 
     model = LinearRegression()
     model.fit(X, y)
 
-    next_price = model.predict([[len(prices)]])[0]
+    next_day = np.array([[len(prices)]])
+    predicted_price = float(model.predict(next_day)[0])
 
-    recent = (prices[-1] - prices[-5]) / prices[-5] * 100 if len(prices) >= 5 else 0
+    recent_trend = (prices[-1] - prices[-5]) / prices[-5] * 100 if len(prices) >= 5 else 0
 
-    if recent > 1:
-        trend, confidence = "bullish", "medium"
-    elif recent < -1:
-        trend, confidence = "bearish", "medium"
+    if recent_trend > 1:
+        trend = "bullish"
+        confidence = "medium"
+    elif recent_trend < -1:
+        trend = "bearish"
+        confidence = "medium"
     else:
-        trend, confidence = "neutral", "low"
+        trend = "neutral"
+        confidence = "low"
 
-    return {"predicted_price": float(next_price), "confidence": confidence, "trend": trend}
+    return {
+        "predicted_price": predicted_price,
+        "confidence": confidence,
+        "trend": trend,
+    }
 
-# ---------- Routes ----------
+# -------------------- Routes --------------------
 
 @api_router.get("/")
 async def root():
@@ -191,11 +226,13 @@ async def get_chart(symbol: str):
 async def predict(symbol: str):
     series = await fetch_time_series(symbol.upper())
     prices = [x["close"] for x in series]
-    current = prices[-1]
+    current_price = prices[-1]
+
     p = predict_next_price(prices)
+
     return StockPrediction(
         symbol=symbol.upper(),
-        current_price=current,
+        current_price=current_price,
         predicted_price=p["predicted_price"],
         confidence=p["confidence"],
         trend=p["trend"],
@@ -215,6 +252,8 @@ async def indicators(symbol: str):
         rsi=calculate_rsi(prices, 14),
     )
 
+# -------------------- App Setup --------------------
+
 app.include_router(api_router)
 
 app.add_middleware(
@@ -224,5 +263,3 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-logging.basicConfig(level=logging.INFO)
