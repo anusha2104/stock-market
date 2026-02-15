@@ -10,6 +10,8 @@ from datetime import datetime, timezone
 import httpx
 import numpy as np
 from sklearn.linear_model import LinearRegression
+import csv
+from io import StringIO
 
 # Create the main app
 app = FastAPI()
@@ -45,32 +47,41 @@ class TechnicalIndicators(BaseModel):
 # ------------------ Yahoo Finance Helpers ------------------
 
 async def fetch_stock_data(symbol: str) -> dict:
-    url = f"https://query1.finance.yahoo.com/v7/finance/quote?symbols={symbol}"
+    # Stooq uses lowercase and .us for US stocks
+    stooq_symbol = symbol.lower() + ".us"
+    url = f"https://stooq.pl/q/l/?s={stooq_symbol}&i=d"
 
-    headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120 Safari/537.36",
-        "Accept": "application/json",
-    }
-
-    async with httpx.AsyncClient(timeout=10.0, headers=headers) as client:
+    async with httpx.AsyncClient(timeout=10.0) as client:
         r = await client.get(url)
 
-    if r.status_code == 429:
-        raise HTTPException(status_code=429, detail="Yahoo Finance rate limit reached. Try again in a minute.")
+    if r.status_code != 200:
+        raise HTTPException(status_code=502, detail="Failed to fetch stock data")
 
-    data = r.json()
+    text = r.text.strip()
+    reader = csv.DictReader(StringIO(text))
+    rows = list(reader)
+
+    if not rows:
+        raise HTTPException(status_code=404, detail="Stock symbol not found")
+
+    row = rows[0]
 
     try:
-        result = data["quoteResponse"]["result"][0]
+        price = float(row["Close"])
+        open_price = float(row["Open"])
+        volume = int(float(row["Volume"]))
     except:
-        raise HTTPException(status_code=404, detail="Stock symbol not found")
+        raise HTTPException(status_code=500, detail="Invalid data from data provider")
+
+    change = price - open_price
+    change_percent = (change / open_price) * 100 if open_price != 0 else 0
 
     return {
         "symbol": symbol.upper(),
-        "price": float(result.get("regularMarketPrice", 0) or 0),
-        "change": float(result.get("regularMarketChange", 0) or 0),
-        "change_percent": float(result.get("regularMarketChangePercent", 0) or 0),
-        "volume": int(result.get("regularMarketVolume", 0) or 0),
+        "price": price,
+        "change": change,
+        "change_percent": change_percent,
+        "volume": volume,
         "timestamp": datetime.now(timezone.utc).isoformat()
     }
 
