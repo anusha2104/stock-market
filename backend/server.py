@@ -1,260 +1,94 @@
-from fastapi import FastAPI, APIRouter, HTTPException
-from starlette.middleware.cors import CORSMiddleware
-import os
-import logging
-from pathlib import Path
-from pydantic import BaseModel, Field, ConfigDict, EmailStr
-from typing import List, Optional
-import uuid
-from datetime import datetime, timezone
-import httpx
-import numpy as np
-from sklearn.linear_model import LinearRegression
-import csv
-from io import StringIO
-from datetime import datetime, timezone
-import httpx
-from fastapi import HTTPException
+from fastapi import FastAPI, HTTPException
+import pandas as pd
 
-# Create the main app
-app = FastAPI()
+app = FastAPI(title="Stock Market Analyzer API")
 
-# Create a router with the /api prefix
-api_router = APIRouter(prefix="/api")
+@app.get("/")
+def root():
+    return {"message": "Stock Market Analyzer API is running"}
 
-# ------------------ Models ------------------
+def fetch_stooq_csv(symbol: str) -> pd.DataFrame:
+    symbol = symbol.lower()
+    if "." not in symbol:
+        symbol = symbol + ".us"  # Auto-fix: AAPL -> aapl.us
 
-class StockData(BaseModel):
-    symbol: str
-    price: float
-    change: float
-    change_percent: float
-    volume: int
-    timestamp: str
-
-class StockPrediction(BaseModel):
-    symbol: str
-    current_price: float
-    predicted_price: float
-    confidence: str
-    trend: str
-
-class TechnicalIndicators(BaseModel):
-    symbol: str
-    sma_20: Optional[float] = None
-    sma_50: Optional[float] = None
-    ema_12: Optional[float] = None
-    ema_26: Optional[float] = None
-    rsi: Optional[float] = None
-
-# ------------------ Yahoo Finance Helpers ------------------
-
-async def fetch_stock_data(symbol: str) -> dict:
-    # Stooq requires lowercase + .us for US stocks
-    stooq_symbol = symbol.lower() + ".us"
-    url = f"https://stooq.pl/q/l/?s={stooq_symbol}&i=d"
-
-    async with httpx.AsyncClient(timeout=10.0) as client:
-        r = await client.get(url)
-
-    if r.status_code != 200:
-        raise HTTPException(status_code=502, detail="Failed to fetch stock data")
-
-    text = r.text.strip()
-
-    # If Stooq doesn't know the symbol, it returns "N/A"
-    if "N/A" in text:
-        raise HTTPException(status_code=404, detail="Stock symbol not found")
-
-    reader = csv.DictReader(StringIO(text))
-    rows = list(reader)
-
-    if not rows:
-        raise HTTPException(status_code=404, detail="Stock symbol not found")
-
-    row = rows[0]
+    url = f"https://stooq.pl/q/d/l/?s={symbol}&i=d"
 
     try:
-        price = float(row["Close"])
-        open_price = float(row["Open"])
-        volume = int(float(row["Volume"]))
-    except:
-        raise HTTPException(status_code=500, detail="Invalid data from data provider")
+        df = pd.read_csv(url)
+    except Exception:
+        raise HTTPException(status_code=500, detail="Failed to fetch data from Stooq")
 
-    change = price - open_price
-    change_percent = (change / open_price) * 100 if open_price != 0 else 0
+    if df.empty or "Date" not in df.columns:
+        raise HTTPException(status_code=404, detail="Stock symbol not found")
+
+    return df, symbol
+
+@app.get("/api/stocks/{symbol}")
+def get_stock(symbol: str):
+    df, fixed_symbol = fetch_stooq_csv(symbol)
+
+    latest = df.iloc[-1]
 
     return {
-        "symbol": symbol.upper(),
-        "price": price,
-        "change": change,
-        "change_percent": change_percent,
-        "volume": volume,
-        "timestamp": datetime.now(timezone.utc).isoformat()
+        "symbol": fixed_symbol,
+        "date": str(latest["Date"]),
+        "open": float(latest["Open"]),
+        "high": float(latest["High"]),
+        "low": float(latest["Low"]),
+        "close": float(latest["Close"]),
+        "volume": int(latest["Volume"]),
     }
 
-async def fetch_time_series(symbol: str) -> List[dict]:
-    url = f"https://query1.finance.yahoo.com/v8/finance/chart/{symbol}?range=3mo&interval=1d"
+@app.get("/api/stocks/{symbol}/chart")
+def get_stock_chart(symbol: str):
+    df, fixed_symbol = fetch_stooq_csv(symbol)
 
-    headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120 Safari/537.36",
-        "Accept": "application/json",
-    }
+    # Return last 100 days for chart
+    df_tail = df.tail(100)
 
-    async with httpx.AsyncClient(timeout=10.0, headers=headers) as client:
-        r = await client.get(url)
-
-    if r.status_code == 429:
-        raise HTTPException(status_code=429, detail="Yahoo Finance rate limit reached. Try again in a minute.")
-
-    data = r.json()
-
-    try:
-        timestamps = data["chart"]["result"][0]["timestamp"]
-        closes = data["chart"]["result"][0]["indicators"]["quote"][0]["close"]
-        volumes = data["chart"]["result"][0]["indicators"]["quote"][0]["volume"]
-    except:
-        raise HTTPException(status_code=404, detail="Failed to fetch historical data")
-
-    result = []
-    for t, c, v in zip(timestamps, closes, volumes):
-        if c is None:
-            continue
-        date = datetime.fromtimestamp(t).strftime("%Y-%m-%d")
-        result.append({
-            "date": date,
-            "close": float(c),
-            "volume": int(v or 0)
+    data = []
+    for _, row in df_tail.iterrows():
+        data.append({
+            "date": str(row["Date"]),
+            "open": float(row["Open"]),
+            "high": float(row["High"]),
+            "low": float(row["Low"]),
+            "close": float(row["Close"]),
+            "volume": int(row["Volume"]),
         })
 
-    return result
-
-
-# ------------------ Indicators & Prediction ------------------
-
-def calculate_sma(prices: List[float], period: int):
-    if len(prices) < period:
-        return None
-    return sum(prices[-period:]) / period
-
-def calculate_ema(prices: List[float], period: int):
-    if len(prices) < period:
-        return None
-    multiplier = 2 / (period + 1)
-    ema = sum(prices[:period]) / period
-    for price in prices[period:]:
-        ema = (price - ema) * multiplier + ema
-    return ema
-
-def calculate_rsi(prices: List[float], period: int = 14):
-    if len(prices) < period + 1:
-        return None
-
-    gains, losses = [], []
-    for i in range(1, len(prices)):
-        diff = prices[i] - prices[i-1]
-        if diff > 0:
-            gains.append(diff)
-            losses.append(0)
-        else:
-            gains.append(0)
-            losses.append(abs(diff))
-
-    avg_gain = sum(gains[-period:]) / period
-    avg_loss = sum(losses[-period:]) / period
-    if avg_loss == 0:
-        return 100
-
-    rs = avg_gain / avg_loss
-    return 100 - (100 / (1 + rs))
-
-def predict_next_price(prices: List[float]):
-    if len(prices) < 10:
-        return {"predicted_price": prices[-1], "confidence": "low", "trend": "neutral"}
-
-    X = np.array(range(len(prices))).reshape(-1, 1)
-    y = np.array(prices)
-
-    model = LinearRegression()
-    model.fit(X, y)
-
-    next_day = np.array([[len(prices)]])
-    predicted_price = float(model.predict(next_day)[0])
-
-    recent_trend = (prices[-1] - prices[-5]) / prices[-5] * 100 if len(prices) >= 5 else 0
-
-    if recent_trend > 1:
-        trend = "bullish"
-        confidence = "medium"
-    elif recent_trend < -1:
-        trend = "bearish"
-        confidence = "medium"
-    else:
-        trend = "neutral"
-        confidence = "low"
-
     return {
-        "predicted_price": predicted_price,
-        "confidence": confidence,
-        "trend": trend
+        "symbol": fixed_symbol,
+        "points": data
     }
 
-# ------------------ API Routes ------------------
+@app.get("/api/stocks/{symbol}/indicators")
+def get_indicators(symbol: str):
+    df, fixed_symbol = fetch_stooq_csv(symbol)
 
-@api_router.get("/")
-async def root():
-    return {"message": "Stock Market Analyzer API"}
+    # Simple indicators
+    df["SMA_10"] = df["Close"].rolling(window=10).mean()
+    df["SMA_20"] = df["Close"].rolling(window=20).mean()
 
-@api_router.get("/stocks/{symbol}", response_model=StockData)
-async def get_stock_data(symbol: str):
-    data = await fetch_stock_data(symbol.upper())
-    return StockData(**data)
+    latest = df.iloc[-1]
 
-@api_router.get("/stocks/{symbol}/chart")
-async def get_stock_chart(symbol: str):
-    data = await fetch_time_series(symbol.upper())
-    return {"symbol": symbol.upper(), "data": data}
+    return {
+        "symbol": fixed_symbol,
+        "sma_10": None if pd.isna(latest["SMA_10"]) else float(latest["SMA_10"]),
+        "sma_20": None if pd.isna(latest["SMA_20"]) else float(latest["SMA_20"]),
+        "close": float(latest["Close"])
+    }
 
-@api_router.get("/stocks/{symbol}/predict", response_model=StockPrediction)
-async def predict_stock_price(symbol: str):
-    series = await fetch_time_series(symbol.upper())
-    prices = [x["close"] for x in series]
+@app.get("/api/stocks/{symbol}/predict")
+def predict_stock(symbol: str):
+    df, fixed_symbol = fetch_stooq_csv(symbol)
 
-    current_price = prices[-1]
-    pred = predict_next_price(prices)
+    # Super simple "prediction": use last close as next prediction (demo-safe)
+    latest_close = float(df.iloc[-1]["Close"])
 
-    return StockPrediction(
-        symbol=symbol.upper(),
-        current_price=current_price,
-        predicted_price=pred["predicted_price"],
-        confidence=pred["confidence"],
-        trend=pred["trend"]
-    )
-
-@api_router.get("/stocks/{symbol}/indicators", response_model=TechnicalIndicators)
-async def get_indicators(symbol: str):
-    series = await fetch_time_series(symbol.upper())
-    prices = [x["close"] for x in series]
-
-    return TechnicalIndicators(
-        symbol=symbol.upper(),
-        sma_20=calculate_sma(prices, 20),
-        sma_50=calculate_sma(prices, 50),
-        ema_12=calculate_ema(prices, 12),
-        ema_26=calculate_ema(prices, 26),
-        rsi=calculate_rsi(prices, 14)
-    )
-
-# ------------------ App Setup ------------------
-
-app.include_router(api_router)
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_credentials=True,
-    allow_origins=["*"],
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-logging.basicConfig(level=logging.INFO)
+    return {
+        "symbol": fixed_symbol,
+        "predicted_price": latest_close,
+        "note": "This is a demo prediction using last closing price"
+    }
