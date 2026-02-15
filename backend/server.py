@@ -12,6 +12,9 @@ import numpy as np
 from sklearn.linear_model import LinearRegression
 import csv
 from io import StringIO
+from datetime import datetime, timezone
+import httpx
+from fastapi import HTTPException
 
 # Create the main app
 app = FastAPI()
@@ -47,7 +50,7 @@ class TechnicalIndicators(BaseModel):
 # ------------------ Yahoo Finance Helpers ------------------
 
 async def fetch_stock_data(symbol: str) -> dict:
-    # Stooq uses lowercase and .us for US stocks
+    # Stooq requires lowercase + .us for US stocks
     stooq_symbol = symbol.lower() + ".us"
     url = f"https://stooq.pl/q/l/?s={stooq_symbol}&i=d"
 
@@ -58,6 +61,11 @@ async def fetch_stock_data(symbol: str) -> dict:
         raise HTTPException(status_code=502, detail="Failed to fetch stock data")
 
     text = r.text.strip()
+
+    # If Stooq doesn't know the symbol, it returns "N/A"
+    if "N/A" in text:
+        raise HTTPException(status_code=404, detail="Stock symbol not found")
+
     reader = csv.DictReader(StringIO(text))
     rows = list(reader)
 
