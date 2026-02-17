@@ -111,3 +111,38 @@ def indicators(symbol: str):
         "sma_5": None if pd.isna(latest["SMA_5"]) else round(float(latest["SMA_5"]), 2),
         "sma_10": None if pd.isna(latest["SMA_10"]) else round(float(latest["SMA_10"]), 2),
     }
+
+
+# =========================
+# DEMO / MOCK ENDPOINTS
+# =========================
+
+@app.get("/api/stocks/demo")
+def demo_stock():
+    return {
+        "symbol": "AAPL",
+        "price": 192.34,
+        "change": "+1.24",
+        "volume": 52341234,
+        "currency": "USD",
+        "exchange": "NASDAQ"
+    }
+
+@app.get("/api/predict/demo")
+def demo_predict():
+    return {
+        "symbol": "AAPL",
+        "predicted_price": 198.50,
+        "confidence": 0.87,
+        "model": "LSTM"
+    }
+
+@app.get("/api/indicators/demo")
+def demo_indicators():
+    return {
+        "symbol": "AAPL",
+        "RSI": 61.2,
+        "SMA": 189.4,
+        "EMA": 191.1,
+        "volatility": 1.34
+    }
