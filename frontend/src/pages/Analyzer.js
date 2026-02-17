@@ -39,33 +39,30 @@ const Analyzer = () => {
   const [prediction, setPrediction] = useState(null);
   const [indicators, setIndicators] = useState(null);
 
-  const fetchAllData = async (stockSymbol) => {
+  const fetchAllData = async () => {
     setLoading(true);
     try {
-      // Demo stock data
       const stockRes = await axios.get(`${API}/stocks/demo`);
       setStockData(stockRes.data);
 
-      // Demo chart data
       const chartRes = await axios.get(`${API}/stocks/demo/chart`);
       setChartData(chartRes.data);
 
-      // Demo prediction
       const predictionRes = await axios.get(`${API}/stocks/demo/predict`);
       setPrediction(predictionRes.data);
 
-      // Demo indicators
       const indicatorsRes = await axios.get(`${API}/stocks/demo/indicators`);
       setIndicators(indicatorsRes.data);
 
-      toast.success(`Loaded demo data successfully`);
+      toast.success("Loaded demo data successfully");
     } catch (error) {
-      console.error('Error fetching data:', error);
-      toast.error('Failed to load demo data');
+      console.error("Error fetching data:", error);
+      toast.error("Failed to load demo data");
     } finally {
       setLoading(false);
     }
   };
+
 
 
   const handleSearch = (e) => {
