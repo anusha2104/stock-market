@@ -64,7 +64,6 @@ const Analyzer = () => {
   };
 
 
-
   const handleSearch = (e) => {
     e.preventDefault();
     if (symbol.trim()) {
