@@ -27,7 +27,7 @@ ChartJS.register(
   Filler
 );
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || "https://stock-market-dlbk.onrender.com";
 const API = `${BACKEND_URL}/api`;
 
 const Analyzer = () => {
@@ -42,39 +42,31 @@ const Analyzer = () => {
   const fetchAllData = async (stockSymbol) => {
     setLoading(true);
     try {
-      // Fetch stock data first
-      const stockRes = await axios.get(`${API}/stocks/${stockSymbol}`);
+      // Demo stock data
+      const stockRes = await axios.get(`${API}/stocks/demo`);
       setStockData(stockRes.data);
-      
-      // Wait a bit to avoid rate limiting
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Fetch chart data
-      const chartRes = await axios.get(`${API}/stocks/${stockSymbol}/chart`);
+
+      // Demo chart data
+      const chartRes = await axios.get(`${API}/stocks/demo/chart`);
       setChartData(chartRes.data);
-      
-      // Wait a bit more
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Fetch prediction
-      const predictionRes = await axios.get(`${API}/stocks/${stockSymbol}/predict`);
+
+      // Demo prediction
+      const predictionRes = await axios.get(`${API}/stocks/demo/predict`);
       setPrediction(predictionRes.data);
-      
-      // Wait a bit more
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Fetch indicators
-      const indicatorsRes = await axios.get(`${API}/stocks/${stockSymbol}/indicators`);
+
+      // Demo indicators
+      const indicatorsRes = await axios.get(`${API}/stocks/demo/indicators`);
       setIndicators(indicatorsRes.data);
-      
-      toast.success(`Successfully loaded data for ${stockSymbol}`);
+
+      toast.success(`Loaded demo data successfully`);
     } catch (error) {
       console.error('Error fetching data:', error);
-      toast.error(error.response?.data?.detail || 'Failed to fetch stock data. Try again in a moment.');
+      toast.error('Failed to load demo data');
     } finally {
       setLoading(false);
     }
   };
+
 
   const handleSearch = (e) => {
     e.preventDefault();

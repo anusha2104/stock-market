@@ -56,7 +56,7 @@ const Footer = () => {
                 <Mail className="h-5 w-5" />
               </a>
               <a 
-                href="https://github.com" 
+                href="https://github.com/anusha2104" 
                 target="_blank" 
                 rel="noopener noreferrer"
                 className="p-2 rounded-full hover:bg-accent transition-colors"
@@ -65,7 +65,7 @@ const Footer = () => {
                 <Github className="h-5 w-5" />
               </a>
               <a 
-                href="https://linkedin.com" 
+                href="https://www.linkedin.com/in/anusha-mittal-462543312/" 
                 target="_blank" 
                 rel="noopener noreferrer"
                 className="p-2 rounded-full hover:bg-accent transition-colors"
@@ -79,7 +79,7 @@ const Footer = () => {
 
         <div className="mt-8 pt-8 border-t border-border text-center">
           <p className="text-sm text-muted-foreground">
-            © 2025 Stock Market Analyzer. Built for educational purposes.
+            
           </p>
         </div>
       </div>
