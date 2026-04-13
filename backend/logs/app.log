@@ -83,3 +83,5 @@
 2026-04-14 02:28:15,533 [INFO] werkzeug — 127.0.0.1 - - [14/Apr/2026 02:28:15] "GET /api/predict?ticker=TCS.NS&period=3mo HTTP/1.1" 200 -
 2026-04-14 02:29:27,799 [INFO] werkzeug — 127.0.0.1 - - [14/Apr/2026 02:29:27] "GET /api/stocks/trending HTTP/1.1" 200 -
 2026-04-14 02:29:27,971 [INFO] werkzeug — 127.0.0.1 - - [14/Apr/2026 02:29:27] "GET /api/stocks/top HTTP/1.1" 200 -
+2026-04-14 02:38:29,502 [INFO] werkzeug — 127.0.0.1 - - [14/Apr/2026 02:38:29] "GET /api/stocks/top HTTP/1.1" 200 -
+2026-04-14 02:38:29,636 [INFO] werkzeug — 127.0.0.1 - - [14/Apr/2026 02:38:29] "GET /api/stocks/trending HTTP/1.1" 200 -
