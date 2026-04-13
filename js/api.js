@@ -55,12 +55,12 @@ const API = (() => {
 
     /** Trending stocks snapshot list. */
     trending() {
-      return request('/stocks/trending');
+      return request('/api/stocks/trending');
     },
 
     /** Top performing stocks snapshot list. */
     topStocks() {
-      return request('/stocks/top');
+      return request('/api/stocks/top');
     },
 
     /**
