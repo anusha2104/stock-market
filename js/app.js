@@ -80,10 +80,6 @@
     try {
       const data = await API.predict(ticker, period);
       
-      if (!data || data.error) {
-        alert("Invalid stock ticker 😅 Try RELIANCE.NS or TCS.NS");
-        return;
-      }
       
       UI.renderAnalysis(data);
     } catch (err) {

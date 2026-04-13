@@ -50,7 +50,7 @@ const API = (() => {
      * @param {string} period — '1mo' | '3mo' | '6mo' | '1y'
      */
     predict(ticker, period = '3mo') {
-      return request(`/predict?ticker=${encodeURIComponent(ticker)}&period=${period}`);
+      return request(`/api/predict?ticker=${encodeURIComponent(ticker)}&period=${period}`);
     },
 
     /** Trending stocks snapshot list. */
@@ -68,7 +68,7 @@ const API = (() => {
      * @param {string} ticker
      */
     quickQuote(ticker) {
-      return request(`/stocks/search?q=${encodeURIComponent(ticker)}`);
+      return request(`/api/stocks/search?q=${encodeURIComponent(ticker)}`);
     },
   };
 })();
