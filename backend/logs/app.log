@@ -59,3 +59,27 @@
 2026-04-14 02:18:04,230 [INFO] werkzeug — 127.0.0.1 - - [14/Apr/2026 02:18:04] "GET /api/stocks/top HTTP/1.1" 200 -
 2026-04-14 02:18:23,157 [INFO] werkzeug — 127.0.0.1 - - [14/Apr/2026 02:18:23] "GET /api/stocks/top HTTP/1.1" 200 -
 2026-04-14 02:18:23,564 [INFO] werkzeug — 127.0.0.1 - - [14/Apr/2026 02:18:23] "GET /api/stocks/trending HTTP/1.1" 200 -
+2026-04-14 02:18:43,490 [INFO] werkzeug — 127.0.0.1 - - [14/Apr/2026 02:18:43] "GET /api/stocks/top HTTP/1.1" 200 -
+2026-04-14 02:18:43,658 [INFO] werkzeug — 127.0.0.1 - - [14/Apr/2026 02:18:43] "GET /api/stocks/trending HTTP/1.1" 200 -
+2026-04-14 02:19:35,144 [INFO] werkzeug — 127.0.0.1 - - [14/Apr/2026 02:19:35] "GET /api/stocks/top HTTP/1.1" 200 -
+2026-04-14 02:19:35,370 [INFO] werkzeug — 127.0.0.1 - - [14/Apr/2026 02:19:35] "GET /api/stocks/trending HTTP/1.1" 200 -
+2026-04-14 02:20:04,229 [INFO] __main__ — [predict] ticker=HDFCBANK.NS, period=3mo
+2026-04-14 02:20:04,238 [INFO] services.stock_service — Fetching history: HDFCBANK.NS / 3mo
+2026-04-14 02:20:05,170 [INFO] services.stock_service — Fetched 59 bars for HDFCBANK.NS
+2026-04-14 02:20:06,188 [INFO] werkzeug — 127.0.0.1 - - [14/Apr/2026 02:20:06] "GET /api/predict?ticker=HDFCBANK.NS&period=3mo HTTP/1.1" 200 -
+2026-04-14 02:20:38,691 [INFO] werkzeug — 127.0.0.1 - - [14/Apr/2026 02:20:38] "GET /api/stocks/trending HTTP/1.1" 200 -
+2026-04-14 02:20:38,805 [INFO] werkzeug — 127.0.0.1 - - [14/Apr/2026 02:20:38] "GET /api/stocks/top HTTP/1.1" 200 -
+2026-04-14 02:24:07,937 [INFO] werkzeug — 127.0.0.1 - - [14/Apr/2026 02:24:07] "GET /api/stocks/top HTTP/1.1" 200 -
+2026-04-14 02:24:08,008 [INFO] werkzeug — 127.0.0.1 - - [14/Apr/2026 02:24:08] "GET /api/stocks/trending HTTP/1.1" 200 -
+2026-04-14 02:24:26,570 [INFO] __main__ — [predict] ticker=ICICIBANK.NS, period=3mo
+2026-04-14 02:24:26,572 [INFO] services.stock_service — Fetching history: ICICIBANK.NS / 3mo
+2026-04-14 02:24:27,021 [INFO] services.stock_service — Fetched 59 bars for ICICIBANK.NS
+2026-04-14 02:24:28,173 [INFO] werkzeug — 127.0.0.1 - - [14/Apr/2026 02:24:28] "GET /api/predict?ticker=ICICIBANK.NS&period=3mo HTTP/1.1" 200 -
+2026-04-14 02:28:05,256 [INFO] werkzeug — 127.0.0.1 - - [14/Apr/2026 02:28:05] "GET /api/stocks/top HTTP/1.1" 200 -
+2026-04-14 02:28:05,372 [INFO] werkzeug — 127.0.0.1 - - [14/Apr/2026 02:28:05] "GET /api/stocks/trending HTTP/1.1" 200 -
+2026-04-14 02:28:13,676 [INFO] __main__ — [predict] ticker=TCS.NS, period=3mo
+2026-04-14 02:28:13,680 [INFO] services.stock_service — Fetching history: TCS.NS / 3mo
+2026-04-14 02:28:14,263 [INFO] services.stock_service — Fetched 59 bars for TCS.NS
+2026-04-14 02:28:15,533 [INFO] werkzeug — 127.0.0.1 - - [14/Apr/2026 02:28:15] "GET /api/predict?ticker=TCS.NS&period=3mo HTTP/1.1" 200 -
+2026-04-14 02:29:27,799 [INFO] werkzeug — 127.0.0.1 - - [14/Apr/2026 02:29:27] "GET /api/stocks/trending HTTP/1.1" 200 -
+2026-04-14 02:29:27,971 [INFO] werkzeug — 127.0.0.1 - - [14/Apr/2026 02:29:27] "GET /api/stocks/top HTTP/1.1" 200 -
