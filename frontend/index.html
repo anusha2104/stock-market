@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MarketMind AI — Stock Market Analyzer</title>
+  <meta name="description" content="AI-powered stock market analysis and prediction for Indian equities" />
+
+  <!-- Google Fonts: Syne (display) + DM Mono (data) + DM Sans (body) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+  <!-- Chart.js Annotation plugin for predicted price line -->
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.0.1/dist/chartjs-plugin-annotation.min.js"></script>
+
+  <!-- Stylesheets -->
+  <link rel="stylesheet" href="css/main.css" />
+  <link rel="stylesheet" href="css/components.css" />
+  <link rel="stylesheet" href="css/animations.css" />
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════════════════════════════
+     HEADER / NAV
+════════════════════════════════════════════════════════════════════════════ -->
+<header class="header" id="header">
+  <nav class="nav container">
+    <div class="nav__brand">
+      <div class="brand-icon">
+        <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+          <path d="M4 20 L10 12 L16 16 L22 6" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+          <circle cx="22" cy="6" r="2.5" fill="var(--accent)"/>
+          <path d="M4 24 H24" stroke="var(--surface-3)" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <span class="brand-name">MarketMind <span class="brand-ai">AI</span></span>
+    </div>
+
+    <div class="nav__search">
+      <div class="search-wrap" id="searchWrap">
+        <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+        </svg>
+        <input
+          type="text"
+          id="searchInput"
+          class="search-input"
+          placeholder="Search ticker — e.g. RELIANCE.NS"
+          autocomplete="off"
+          spellcheck="false"
+        />
+        <button class="search-btn" id="searchBtn" aria-label="Analyse">
+          <span>Analyse</span>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <path d="M5 12h14M12 5l7 7-7 7"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <div class="nav__meta">
+      <div class="market-time" id="marketTime">
+        <span class="market-dot" id="marketDot"></span>
+        <span id="marketLabel">NSE</span>
+      
+  </nav>
+</header>
+
+<!-- ═══════════════════════════════════════════════════════════════════════════
+     HERO BANNER
+════════════════════════════════════════════════════════════════════════════ -->
+<section class="hero" id="hero">
+  <div class="hero__bg">
+    <canvas id="heroBg" class="hero-canvas"></canvas>
+  </div>
+  <div class="container hero__content">
+    <div class="hero__tag">AI-Powered Analysis Engine</div>
+    <h1 class="hero__title">Intelligent Stock<br/><em>Prediction & Analytics</em></h1>
+    <p class="hero__sub">Technical indicators, ensemble signal scoring, and volatility-adjusted<br/>price prediction for Indian & global equities.</p>
+    <div class="hero__chips">
+      <button class="chip" onclick="analyzeStock('RELIANCE.NS')">RELIANCE.NS</button>
+      <button class="chip" onclick="analyzeStock('TCS.NS')">TCS.NS</button>
+      <button class="chip" onclick="analyzeStock('INFY.NS')">INFY.NS</button>
+      <button class="chip" onclick="analyzeStock('HDFCBANK.NS')">HDFCBANK.NS</button>
+      <button class="chip" onclick="analyzeStock('WIPRO.NS')">WIPRO.NS</button>
+    </div>
+  </div>
+  <div class="hero__scroll-hint">
+    <span>Scroll to explore</span>
+    <div class="scroll-arrow"></div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════════════
+     MAIN CONTENT
+════════════════════════════════════════════════════════════════════════════ -->
+<main class="main container" id="mainContent">
+
+  <!-- ── Analysis Result Panel (shown after search) ── -->
+  <section class="analysis-panel" id="analysisPanel" style="display:none">
+
+    <!-- Loading Overlay -->
+    <div class="analysis-loading" id="analysisLoading">
+      <div class="loading-core">
+        <div class="loading-rings">
+          <div class="ring ring-1"></div>
+          <div class="ring ring-2"></div>
+          <div class="ring ring-3"></div>
+        </div>
+        <div class="loading-text">
+          <span id="loadingMsg">Fetching market data…</span>
+          <div class="loading-bar"><div class="loading-progress" id="loadingProgress"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Error State -->
+    <div class="analysis-error" id="analysisError" style="display:none">
+      <div class="error-icon">⚠</div>
+      <h3 id="errorTitle">Analysis Failed</h3>
+      <p id="errorMsg">Unable to fetch data for this ticker.</p>
+      <button class="btn-retry" onclick="retryAnalysis()">Retry</button>
+    </div>
+
+    <!-- Result Content -->
+    <div id="analysisResult" style="display:none">
+
+      <!-- Stock Header -->
+      <div class="stock-header" id="stockHeader">
+        <div class="stock-header__left">
+          <div class="stock-ticker-badge" id="resultTicker">—</div>
+          <div>
+            <h2 class="stock-name" id="resultName">—</h2>
+            <div class="stock-meta-row">
+              <span class="meta-chip" id="resultSector">—</span>
+              <span class="meta-chip" id="resultExchange">—</span>
+              <span class="meta-chip" id="resultMcap">—</span>
+            </div>
+          </div>
+        </div>
+        <div class="stock-header__right">
+          <div class="price-block">
+            <div class="price-current" id="resultCurrentPrice">—</div>
+            <div class="price-label">Current Price</div>
+          </div>
+          <div class="price-arrow" id="trendArrow">↗</div>
+          <div class="price-block">
+            <div class="price-predicted" id="resultPredictedPrice">—</div>
+            <div class="price-label">5-Day Forecast</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- KPI Cards Row -->
+      <div class="kpi-row">
+        <div class="kpi-card" id="kpiTrend">
+          <div class="kpi-icon">📈</div>
+          <div class="kpi-val" id="kpiTrendVal">—</div>
+          <div class="kpi-label">Market Trend</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-icon">🎯</div>
+          <div class="kpi-val" id="kpiConfidence">—</div>
+          <div class="kpi-label">Confidence</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-icon">📊</div>
+          <div class="kpi-val" id="kpiChange">—</div>
+          <div class="kpi-label">Expected Δ</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-icon">⚡</div>
+          <div class="kpi-val" id="kpiVol">—</div>
+          <div class="kpi-label">Annualised Vol</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-icon">📉</div>
+          <div class="kpi-val" id="kpiRsi">—</div>
+          <div class="kpi-label">RSI (14)</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-icon">💰</div>
+          <div class="kpi-val" id="kpiPE">—</div>
+          <div class="kpi-label">P/E Ratio</div>
+        </div>
+      </div>
+
+      <!-- Confidence Gauge + Signal Breakdown -->
+      <div class="analysis-grid">
+
+        <!-- Price Chart -->
+        <div class="card chart-card" id="chartCard">
+          <div class="card__header">
+            <h3 class="card__title">Price History & Prediction</h3>
+            <div class="chart-controls">
+              <button class="chart-btn active" data-period="1mo" onclick="changePeriod('1mo',this)">1M</button>
+              <button class="chart-btn" data-period="3mo" onclick="changePeriod('3mo',this)">3M</button>
+              <button class="chart-btn" data-period="6mo" onclick="changePeriod('6mo',this)">6M</button>
+              <button class="chart-btn" data-period="1y"  onclick="changePeriod('1y',this)">1Y</button>
+            </div>
+          </div>
+          <div class="chart-wrap">
+            <canvas id="priceChart"></canvas>
+          </div>
+        </div>
+
+        <!-- Confidence Gauge -->
+        <div class="card gauge-card">
+          <div class="card__header">
+            <h3 class="card__title">Prediction Confidence</h3>
+          </div>
+          <div class="gauge-container">
+            <canvas id="gaugeChart" width="220" height="140"></canvas>
+            <div class="gauge-label">
+              <span class="gauge-value" id="gaugeValue">—</span>
+              <span class="gauge-sub">out of 100</span>
+            </div>
+          </div>
+          <div class="confidence-bands">
+            <div class="band band--low">Low</div>
+            <div class="band band--med">Medium</div>
+            <div class="band band--high">High</div>
+          </div>
+        </div>
+
+      </div><!-- /.analysis-grid -->
+
+      <!-- Indicator Row -->
+      <div class="indicator-section">
+        <h3 class="section-title">Technical Indicators</h3>
+        <div class="indicator-grid" id="indicatorGrid">
+          <!-- Populated by JS -->
+        </div>
+      </div>
+
+      <!-- Signal Breakdown -->
+      <div class="card signals-card">
+        <div class="card__header">
+          <h3 class="card__title">Signal Analysis Breakdown</h3>
+          <span class="card__sub">8 independent signal sources • weighted ensemble</span>
+        </div>
+        <div class="signals-list" id="signalsList">
+          <!-- Populated by JS -->
+        </div>
+      </div>
+
+      <!-- RSI + MACD Charts -->
+      <div class="sub-charts-grid">
+        <div class="card">
+          <div class="card__header"><h3 class="card__title">RSI (14-Day)</h3></div>
+          <div class="chart-wrap chart-wrap--sm">
+            <canvas id="rsiChart"></canvas>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card__header"><h3 class="card__title">MACD</h3></div>
+          <div class="chart-wrap chart-wrap--sm">
+            <canvas id="macdChart"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- 52-Week Stats -->
+      <div class="card stats-card">
+        <div class="card__header"><h3 class="card__title">Key Statistics</h3></div>
+        <div class="stats-grid" id="statsGrid">
+          <!-- Populated by JS -->
+        </div>
+      </div>
+
+    </div><!-- /#analysisResult -->
+  </section>
+
+  <!-- ── Trending Stocks ── -->
+  <section class="stocks-section" id="trendingSection">
+    <div class="section-header">
+      <div>
+        <h2 class="section-title">Trending Stocks</h2>
+        <p class="section-sub">High-volume NSE movers updated in real-time</p>
+      </div>
+      <div class="live-badge"><span class="live-dot"></span>Live</div>
+    </div>
+    <div class="stock-cards-grid" id="trendingGrid">
+      <!-- Skeletons shown initially -->
+      <div class="stock-card skeleton"></div>
+      <div class="stock-card skeleton"></div>
+      <div class="stock-card skeleton"></div>
+      <div class="stock-card skeleton"></div>
+      <div class="stock-card skeleton"></div>
+      <div class="stock-card skeleton"></div>
+      <div class="stock-card skeleton"></div>
+      <div class="stock-card skeleton"></div>
+    </div>
+  </section>
+
+  <!-- ── Top Performing Stocks ── -->
+  <section class="stocks-section" id="topSection">
+    <div class="section-header">
+      <div>
+        <h2 class="section-title">Top Performers</h2>
+        <p class="section-sub">Ranked by 30-day risk-adjusted returns</p>
+      </div>
+    </div>
+    <div class="stock-cards-grid" id="topGrid">
+      <div class="stock-card skeleton"></div>
+      <div class="stock-card skeleton"></div>
+      <div class="stock-card skeleton"></div>
+      <div class="stock-card skeleton"></div>
+      <div class="stock-card skeleton"></div>
+      <div class="stock-card skeleton"></div>
+      <div class="stock-card skeleton"></div>
+      <div class="stock-card skeleton"></div>
+    </div>
+  </section>
+
+</main><!-- /.main -->
+
+<!-- ═══════════════════════════════════════════════════════════════════════════
+     FOOTER
+════════════════════════════════════════════════════════════════════════════ -->
+<footer class="footer">
+  <div class="container footer__inner">
+    <div>
+      <span class="brand-name">MarketMind <span class="brand-ai">AI</span></span>
+      <p class="footer__copy">B.Tech Major Project · AI-Based Stock Market Analyzer · 2024–25</p>
+    </div>
+    <div class="footer__disclaimer">
+      <p>⚠ This tool is for educational purposes only. Not financial advice.</p>
+      <p>Data sourced from Yahoo Finance via yfinance.</p>
+    </div>
+  </div>
+</footer>
+
+<!-- Scripts -->
+<script src="js/api.js"></script>
+<script src="js/charts.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/app.js"></script>
+
+</body>
+</html>

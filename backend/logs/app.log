@@ -1,0 +1,61 @@
+2026-04-14 01:42:10,652 [INFO] werkzeug — [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://10.67.2.127:5000
+2026-04-14 01:42:10,654 [INFO] werkzeug — [33mPress CTRL+C to quit[0m
+2026-04-14 01:42:10,657 [INFO] werkzeug —  * Restarting with stat
+2026-04-14 01:42:12,757 [WARNING] werkzeug —  * Debugger is active!
+2026-04-14 01:42:12,765 [INFO] werkzeug —  * Debugger PIN: 107-531-911
+2026-04-14 01:42:22,078 [INFO] werkzeug — 127.0.0.1 - - [14/Apr/2026 01:42:22] "[33mGET / HTTP/1.1[0m" 404 -
+2026-04-14 01:43:39,443 [INFO] werkzeug — 127.0.0.1 - - [14/Apr/2026 01:43:39] "GET /api/health HTTP/1.1" 200 -
+2026-04-14 01:44:55,208 [INFO] werkzeug — 127.0.0.1 - - [14/Apr/2026 01:44:55] "[33mGET / HTTP/1.1[0m" 404 -
+2026-04-14 01:45:17,816 [INFO] __main__ — [predict] ticker=RELIANCE.NS, period=3mo
+2026-04-14 01:45:17,816 [INFO] services.stock_service — Fetching history: RELIANCE.NS / 3mo
+2026-04-14 01:45:18,231 [INFO] services.stock_service — Fetched 59 bars for RELIANCE.NS
+2026-04-14 01:45:19,152 [INFO] werkzeug — 127.0.0.1 - - [14/Apr/2026 01:45:19] "GET /api/predict?ticker=RELIANCE.NS&period=3mo HTTP/1.1" 200 -
+2026-04-14 01:45:20,532 [INFO] werkzeug — 127.0.0.1 - - [14/Apr/2026 01:45:20] "GET /api/stocks/top HTTP/1.1" 200 -
+2026-04-14 01:45:20,848 [INFO] werkzeug — 127.0.0.1 - - [14/Apr/2026 01:45:20] "GET /api/stocks/trending HTTP/1.1" 200 -
+2026-04-14 01:46:37,951 [INFO] werkzeug — 127.0.0.1 - - [14/Apr/2026 01:46:37] "GET /api/stocks/top HTTP/1.1" 200 -
+2026-04-14 01:46:38,076 [INFO] werkzeug — 127.0.0.1 - - [14/Apr/2026 01:46:38] "GET /api/stocks/trending HTTP/1.1" 200 -
+2026-04-14 01:47:02,573 [INFO] __main__ — [predict] ticker=RELIANCE.NS, period=3mo
+2026-04-14 01:47:02,575 [INFO] services.stock_service — Fetching history: RELIANCE.NS / 3mo
+2026-04-14 01:47:03,288 [INFO] services.stock_service — Fetched 59 bars for RELIANCE.NS
+2026-04-14 01:47:04,302 [INFO] werkzeug — 127.0.0.1 - - [14/Apr/2026 01:47:04] "GET /api/predict?ticker=RELIANCE.NS&period=3mo HTTP/1.1" 200 -
+2026-04-14 01:47:46,233 [INFO] __main__ — [predict] ticker=AAPL, period=3mo
+2026-04-14 01:47:46,249 [INFO] services.stock_service — Fetching history: AAPL / 3mo
+2026-04-14 01:47:50,199 [INFO] services.stock_service — Fetched 61 bars for AAPL
+2026-04-14 01:47:53,019 [INFO] werkzeug — 127.0.0.1 - - [14/Apr/2026 01:47:53] "GET /api/predict?ticker=AAPL&period=3mo HTTP/1.1" 200 -
+2026-04-14 01:49:54,929 [INFO] werkzeug — 127.0.0.1 - - [14/Apr/2026 01:49:54] "GET /api/stocks/top HTTP/1.1" 200 -
+2026-04-14 01:49:55,050 [INFO] werkzeug — 127.0.0.1 - - [14/Apr/2026 01:49:55] "GET /api/stocks/trending HTTP/1.1" 200 -
+2026-04-14 01:53:24,284 [INFO] werkzeug — 127.0.0.1 - - [14/Apr/2026 01:53:24] "GET /api/stocks/trending HTTP/1.1" 200 -
+2026-04-14 01:53:24,288 [INFO] werkzeug — 127.0.0.1 - - [14/Apr/2026 01:53:24] "GET /api/stocks/top HTTP/1.1" 200 -
+2026-04-14 01:59:06,153 [INFO] werkzeug — 127.0.0.1 - - [14/Apr/2026 01:59:06] "GET /api/stocks/trending HTTP/1.1" 200 -
+2026-04-14 01:59:06,248 [INFO] werkzeug — 127.0.0.1 - - [14/Apr/2026 01:59:06] "GET /api/stocks/top HTTP/1.1" 200 -
+2026-04-14 01:59:58,643 [INFO] werkzeug — 127.0.0.1 - - [14/Apr/2026 01:59:58] "GET /api/stocks/trending HTTP/1.1" 200 -
+2026-04-14 01:59:58,750 [INFO] werkzeug — 127.0.0.1 - - [14/Apr/2026 01:59:58] "GET /api/stocks/top HTTP/1.1" 200 -
+2026-04-14 02:00:01,543 [INFO] werkzeug — 127.0.0.1 - - [14/Apr/2026 02:00:01] "GET /api/stocks/trending HTTP/1.1" 200 -
+2026-04-14 02:00:01,874 [INFO] werkzeug — 127.0.0.1 - - [14/Apr/2026 02:00:01] "GET /api/stocks/top HTTP/1.1" 200 -
+2026-04-14 02:01:07,334 [INFO] werkzeug — 127.0.0.1 - - [14/Apr/2026 02:01:07] "GET /api/stocks/top HTTP/1.1" 200 -
+2026-04-14 02:01:07,384 [INFO] werkzeug — 127.0.0.1 - - [14/Apr/2026 02:01:07] "GET /api/stocks/trending HTTP/1.1" 200 -
+2026-04-14 02:01:19,604 [INFO] werkzeug — 127.0.0.1 - - [14/Apr/2026 02:01:19] "GET /api/stocks/top HTTP/1.1" 200 -
+2026-04-14 02:01:19,740 [INFO] werkzeug — 127.0.0.1 - - [14/Apr/2026 02:01:19] "GET /api/stocks/trending HTTP/1.1" 200 -
+2026-04-14 02:02:16,258 [INFO] werkzeug — [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://10.67.2.127:5000
+2026-04-14 02:02:16,259 [INFO] werkzeug — [33mPress CTRL+C to quit[0m
+2026-04-14 02:02:16,266 [INFO] werkzeug —  * Restarting with stat
+2026-04-14 02:02:21,504 [WARNING] werkzeug —  * Debugger is active!
+2026-04-14 02:02:21,593 [INFO] werkzeug —  * Debugger PIN: 107-531-911
+2026-04-14 02:02:31,368 [INFO] werkzeug — 127.0.0.1 - - [14/Apr/2026 02:02:31] "GET /api/stocks/top HTTP/1.1" 200 -
+2026-04-14 02:02:31,999 [INFO] werkzeug — 127.0.0.1 - - [14/Apr/2026 02:02:31] "GET /api/stocks/trending HTTP/1.1" 200 -
+2026-04-14 02:04:05,561 [INFO] werkzeug — 127.0.0.1 - - [14/Apr/2026 02:04:05] "GET /api/stocks/top HTTP/1.1" 200 -
+2026-04-14 02:04:06,052 [INFO] werkzeug — 127.0.0.1 - - [14/Apr/2026 02:04:06] "GET /api/stocks/trending HTTP/1.1" 200 -
+2026-04-14 02:05:36,007 [INFO] werkzeug — 127.0.0.1 - - [14/Apr/2026 02:05:36] "GET /api/stocks/trending HTTP/1.1" 200 -
+2026-04-14 02:05:36,011 [INFO] werkzeug — 127.0.0.1 - - [14/Apr/2026 02:05:36] "GET /api/stocks/top HTTP/1.1" 200 -
+2026-04-14 02:10:29,741 [INFO] werkzeug — 127.0.0.1 - - [14/Apr/2026 02:10:29] "GET /api/stocks/top HTTP/1.1" 200 -
+2026-04-14 02:10:29,824 [INFO] werkzeug — 127.0.0.1 - - [14/Apr/2026 02:10:29] "GET /api/stocks/trending HTTP/1.1" 200 -
+2026-04-14 02:18:04,203 [INFO] werkzeug — 127.0.0.1 - - [14/Apr/2026 02:18:04] "GET /api/stocks/trending HTTP/1.1" 200 -
+2026-04-14 02:18:04,230 [INFO] werkzeug — 127.0.0.1 - - [14/Apr/2026 02:18:04] "GET /api/stocks/top HTTP/1.1" 200 -
+2026-04-14 02:18:23,157 [INFO] werkzeug — 127.0.0.1 - - [14/Apr/2026 02:18:23] "GET /api/stocks/top HTTP/1.1" 200 -
+2026-04-14 02:18:23,564 [INFO] werkzeug — 127.0.0.1 - - [14/Apr/2026 02:18:23] "GET /api/stocks/trending HTTP/1.1" 200 -
