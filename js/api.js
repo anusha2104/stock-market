@@ -7,7 +7,7 @@
 
 const API = (() => {
 
-  const BASE_URL = 'http://127.0.0.1:5000/api';
+  const BASE_URL = "https://marketmind-backend-et47.onrender.com";
   const TIMEOUT  = 30_000; // 30s — yfinance can be slow
 
   /**
