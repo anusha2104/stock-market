@@ -25,8 +25,7 @@ from utils.response_builder import success_response, error_response
 # ─── Application Bootstrap ────────────────────────────────────────────────────
 
 app = Flask(__name__)
-CORS(app, resources={r"/api/*": {"origins": "*"}})
-
+CORS(app)
 # ─── Logging Configuration ────────────────────────────────────────────────────
 
 logging.basicConfig(
